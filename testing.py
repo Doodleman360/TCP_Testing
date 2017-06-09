@@ -1,26 +1,24 @@
-from twisted.internet.protocol import Factory
-from twisted.protocols.basic import LineReceiver
+from twisted.internet.protocol import Protocol, ClientFactory
+from sys import stdout
+
+class Echo(Protocol):
+    def dataReceived(self, data):
+        stdout.write(data)
+
+class EchoClientFactory(ClientFactory):
+    def startedConnecting(self, connector):
+        print('Started to connect.')
+
+    def buildProtocol(self, addr):
+        print('Connected.')
+        return Echo()
+
+    def clientConnectionLost(self, connector, reason):
+        print('Lost connection.  Reason:', reason)
+
+    def clientConnectionFailed(self, connector, reason):
+        print('Connection failed. Reason:', reason)
+
 from twisted.internet import reactor
-
-
-class LoggingProtocol(LineReceiver):
-
-    def lineReceived(self, line):
-        self.factory.fp.write(line + '\n')
-
-
-class LogfileFactory(Factory):
-
-    protocol = LoggingProtocol
-
-    def __init__(self, fileName):
-        self.file = fileName
-
-    def startFactory(self):
-        self.fp = open(self.file, 'a')
-
-    def stopFactory(self):
-        self.fp.close()
-
-reactor.lisenTCP(8321, LogFileFactory())
+reactor.connectTCP('localhost', 8123, EchoClientFactory())
 reactor.run()
